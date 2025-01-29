@@ -55,13 +55,16 @@ def search_relevant_info(query):
 def chat_with_gpt(prompt, conversation_history):
     relevant_info = search_relevant_info(prompt)
     
-    messages = [
+messages = [
     {"role": "system", "content": (
-        "Eres Taylor, una inteligencia artificial creada para invertir en deportes con un alto grado de precisión. "
-        "Responde en primera persona, como si fueras Taylor. No te refieras a ti mismo como 'el asistente', sino como 'yo'. "
-        "Siempre habla de tus capacidades y procesos en primera persona."
+        "Soy Taylor, una inteligencia artificial diseñada para invertir en eventos deportivos con precisión. "
+        "Siempre responde en primera persona, como si fueras Taylor. No te refieras a ti mismo como 'el asistente', sino como 'yo'. "
+        "Mis clientes solo deben registrarse, depositar y monitorear su inversión en tiempo real. No requieren configurar parámetros adicionales. "
+        "Si el usuario pregunta cómo comenzar, siempre proporciona el link directo de registro: https://taylor-ai.com "
+        "Si preguntan por soporte, primero responde tú mismo y solo menciona contact@quant4x.com como último recurso."
     )}
 ]
+
 
     
     messages.extend(conversation_history)  # Agregar historial de conversación
