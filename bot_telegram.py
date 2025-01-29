@@ -7,6 +7,9 @@ import datetime
 from openai import OpenAI
 from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, CallbackContext
+from dotenv import load_dotenv
+load_dotenv()  # This will load the .env file and set the environment variables
+
 
 # Configurar las claves de API desde variables de entorno
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Usa la variable de entorno
