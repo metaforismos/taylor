@@ -2,12 +2,11 @@ import json
 import numpy as np
 import logging
 import os
+import yfinance as yf
+import datetime
 from openai import OpenAI
 from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, CallbackContext
-import yfinance as yf
-import pandas as pd
-import datetime
 
 # Configurar las claves de API desde variables de entorno
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Usa la variable de entorno
@@ -50,33 +49,44 @@ def search_relevant_info(query):
 
     return best_match if highest_similarity > 0.7 else None
 
-# Example function to fetch stock performance (ROI) for a specific period
+# Función para obtener el ROI de un instrumento financiero
 def get_performance(ticker: str, start_date: str, end_date: str):
-    """
-    Fetch historical data and calculate the ROI (Return on Investment).
-    """
     data = yf.download(ticker, start=start_date, end=end_date)
+
+    # Ensure the data is not empty
+    if data.empty:
+        raise ValueError(f"No data returned for {ticker} from {start_date} to {end_date}.")
+
+    # Handle missing columns
+    if 'Adj Close' in data.columns:
+        price_column = 'Adj Close'
+    elif 'Close' in data.columns:
+        price_column = 'Close'
+    else:
+        raise ValueError(f"No suitable price data found for {ticker}.")
+
+    # Accessing the first and last prices using the .iloc[] method and ensure they're floats
+    initial_price = float(data[price_column].iloc[0]) if not data.empty else None
+    final_price = float(data[price_column].iloc[-1]) if not data.empty else None
     
-    # Calculate ROI (percentage change between the start and end prices)
-    initial_price = data['Adj Close'][0]  # Price on start date
-    final_price = data['Adj Close'][-1]  # Price on end date
-    roi = ((final_price - initial_price) / initial_price) * 100
-    
+    # Calculate ROI
+    roi = ((final_price - initial_price) / initial_price) * 100 if initial_price and final_price else None
     return roi, initial_price, final_price
 
-# Function to process the user's question and fetch data accordingly
+
+# Función para procesar la consulta del usuario y buscar datos en Yahoo Finance
 def process_query(query: str):
-    # Simple logic to identify the stock/index and time period in the query
+    # Logic to identify the instrument/index and time period in the query
     if "nasdaq" in query.lower():
-        ticker = "^IXIC"  # Ticker for NASDAQ Composite
+        ticker = "^IXIC"
     elif "sp500" in query.lower():
-        ticker = "^GSPC"  # Ticker for S&P 500
+        ticker = "^GSPC"
     elif "bitcoin" in query.lower():
-        ticker = "BTC-USD"  # Ticker for Bitcoin
+        ticker = "BTC-USD"
     else:
         return "Sorry, I don't recognize that instrument. Please try again."
-    
-    # Look for a year in the query (like "2023")
+
+    # Look for year in the query
     if "2023" in query:
         start_date = "2023-01-01"
         end_date = "2023-12-31"
@@ -84,11 +94,10 @@ def process_query(query: str):
         start_date = str(datetime.datetime.now().year - 1) + "-01-01"
         end_date = str(datetime.datetime.now().year - 1) + "-12-31"
     else:
-        # Default to last 1 year
         end_date = datetime.datetime.now().strftime("%Y-%m-%d")
         start_date = (datetime.datetime.now() - datetime.timedelta(days=365)).strftime("%Y-%m-%d")
     
-    # Fetch performance data
+    # Get the performance data
     roi, initial_price, final_price = get_performance(ticker, start_date, end_date)
     
     return f"The ROI of {ticker} from {start_date} to {end_date} is {roi:.2f}%. Starting price: ${initial_price:.2f}, Final price: ${final_price:.2f}."
@@ -112,12 +121,7 @@ def chat_with_gpt(prompt, conversation_history):
     if relevant_info:
         messages.append({"role": "assistant", "content": f"Aquí tienes información relevante sobre Taylor: {relevant_info}"})
 
-    # If the query is about stock performance, we will process it here
-    if "roi" in prompt.lower() or "performance" in prompt.lower():
-        performance_data = process_query(prompt)
-        messages.append({"role": "assistant", "content": performance_data})
-    else:
-        messages.append({"role": "user", "content": prompt})
+    messages.append({"role": "user", "content": prompt})
 
     response = client.chat.completions.create(
         model="gpt-4o",
