@@ -5,6 +5,9 @@ import os
 from openai import OpenAI
 from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, CallbackContext
+import yfinance as yf
+import pandas as pd
+import datetime
 
 # Configurar las claves de API desde variables de entorno
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # Usa la variable de entorno
@@ -47,6 +50,49 @@ def search_relevant_info(query):
 
     return best_match if highest_similarity > 0.7 else None
 
+# Example function to fetch stock performance (ROI) for a specific period
+def get_performance(ticker: str, start_date: str, end_date: str):
+    """
+    Fetch historical data and calculate the ROI (Return on Investment).
+    """
+    data = yf.download(ticker, start=start_date, end=end_date)
+    
+    # Calculate ROI (percentage change between the start and end prices)
+    initial_price = data['Adj Close'][0]  # Price on start date
+    final_price = data['Adj Close'][-1]  # Price on end date
+    roi = ((final_price - initial_price) / initial_price) * 100
+    
+    return roi, initial_price, final_price
+
+# Function to process the user's question and fetch data accordingly
+def process_query(query: str):
+    # Simple logic to identify the stock/index and time period in the query
+    if "nasdaq" in query.lower():
+        ticker = "^IXIC"  # Ticker for NASDAQ Composite
+    elif "sp500" in query.lower():
+        ticker = "^GSPC"  # Ticker for S&P 500
+    elif "bitcoin" in query.lower():
+        ticker = "BTC-USD"  # Ticker for Bitcoin
+    else:
+        return "Sorry, I don't recognize that instrument. Please try again."
+    
+    # Look for a year in the query (like "2023")
+    if "2023" in query:
+        start_date = "2023-01-01"
+        end_date = "2023-12-31"
+    elif "last year" in query.lower():
+        start_date = str(datetime.datetime.now().year - 1) + "-01-01"
+        end_date = str(datetime.datetime.now().year - 1) + "-12-31"
+    else:
+        # Default to last 1 year
+        end_date = datetime.datetime.now().strftime("%Y-%m-%d")
+        start_date = (datetime.datetime.now() - datetime.timedelta(days=365)).strftime("%Y-%m-%d")
+    
+    # Fetch performance data
+    roi, initial_price, final_price = get_performance(ticker, start_date, end_date)
+    
+    return f"The ROI of {ticker} from {start_date} to {end_date} is {roi:.2f}%. Starting price: ${initial_price:.2f}, Final price: ${final_price:.2f}."
+
 # Función para generar respuesta usando OpenAI y embeddings
 def chat_with_gpt(prompt, conversation_history):
     relevant_info = search_relevant_info(prompt)
@@ -66,7 +112,12 @@ def chat_with_gpt(prompt, conversation_history):
     if relevant_info:
         messages.append({"role": "assistant", "content": f"Aquí tienes información relevante sobre Taylor: {relevant_info}"})
 
-    messages.append({"role": "user", "content": prompt})
+    # If the query is about stock performance, we will process it here
+    if "roi" in prompt.lower() or "performance" in prompt.lower():
+        performance_data = process_query(prompt)
+        messages.append({"role": "assistant", "content": performance_data})
+    else:
+        messages.append({"role": "user", "content": prompt})
 
     response = client.chat.completions.create(
         model="gpt-4o",
