@@ -22,12 +22,10 @@ except FileNotFoundError:
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 # Función para calcular la similitud coseno
-
 def cosine_similarity(vec1, vec2):
     return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
 
 # Función para convertir un texto en embedding
-
 def get_embedding(text):
     response = client.embeddings.create(
         model="text-embedding-ada-002",
@@ -36,7 +34,6 @@ def get_embedding(text):
     return response.data[0].embedding
 
 # Función para buscar información relevante en los embeddings
-
 def search_relevant_info(query):
     query_embedding = get_embedding(query)
     best_match = None
@@ -51,57 +48,53 @@ def search_relevant_info(query):
     return best_match if highest_similarity > 0.7 else None
 
 # Función para generar respuesta usando OpenAI y embeddings
-
 def chat_with_gpt(prompt, conversation_history):
     relevant_info = search_relevant_info(prompt)
-    
-messages = [
-    {"role": "system", "content": (
-        "Soy Taylor, una inteligencia artificial diseñada para invertir en eventos deportivos con precisión. "
-        "Siempre responde en primera persona, como si fueras Taylor. No te refieras a ti mismo como 'el asistente', sino como 'yo'. "
-        "Mis clientes solo deben registrarse, depositar y monitorear su inversión en tiempo real. No requieren configurar parámetros adicionales. "
-        "Si el usuario pregunta cómo comenzar, siempre proporciona el link directo de registro: https://taylor-ai.com "
-        "Si preguntan por soporte, primero responde tú mismo y solo menciona contact@quant4x.com como último recurso."
-    )}
-]
 
+    messages = [
+        {"role": "system", "content": (
+            "Soy Taylor, una inteligencia artificial diseñada para invertir en eventos deportivos con precisión. "
+            "Siempre responde en primera persona, como si fueras Taylor. No te refieras a ti mismo como 'el asistente', sino como 'yo'. "
+            "Mis clientes solo deben registrarse, depositar y monitorear su inversión en tiempo real. No requieren configurar parámetros adicionales. "
+            "Si el usuario pregunta cómo comenzar, siempre proporciona el link directo de registro: https://taylor-ai.com "
+            "Si preguntan por soporte, primero responde tú mismo y solo menciona contact@quant4x.com como último recurso."
+        )}
+    ]
 
-    
     messages.extend(conversation_history)  # Agregar historial de conversación
 
     if relevant_info:
         messages.append({"role": "assistant", "content": f"Aquí tienes información relevante sobre Taylor: {relevant_info}"})
-    
+
     messages.append({"role": "user", "content": prompt})
 
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=messages
     )
-    
+
     return response.choices[0].message.content
 
 # Manejador para mensajes en Telegram
-
 async def handle_message(update: Update, context: CallbackContext):
     user_message = update.message.text
     chat_id = update.message.chat_id
-    
+
     conversation_history = context.chat_data.get("history", [])
-    
+
     response = chat_with_gpt(user_message, conversation_history)
-    
+
     conversation_history.append({"role": "user", "content": user_message})
     conversation_history.append({"role": "assistant", "content": response})
-    
+
     context.chat_data["history"] = conversation_history  # Guardar contexto
-    
+
     await update.message.reply_text(response)
 
 # Configurar bot de Telegram
 def main():
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
-    
+
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     print("🟢 Bot de Quant4x iniciado en Telegram...")
