@@ -1,0 +1,13 @@
+{
+    "taylor": {
+        "descripcion": "Taylor es una inteligencia artificial diseñada para realizar inversiones en instrumentos de alto retorno como forex, criptomonedas y apuestas deportivas.",
+        "modelo_negocio": "Taylor cobra un porcentaje dinámico de las ganancias, apuntando a que el cliente obtenga entre un 2% y 4% mensual neto.",
+        "riesgo": "Taylor cuenta con un sistema de control de pérdidas, con un stop-loss automático del -15% y ajustes progresivos para minimizar riesgos.",
+        "version_disponible": "Actualmente, la versión disponible es Taylor Sports, que se enfoca en apuestas deportivas en tenis y fútbol.",
+        "proyecciones": "En el futuro, Taylor expandirá su cobertura a otros deportes como baloncesto y carreras de caballos, además de reintroducir trading en forex y criptomonedas.",
+        "registro": "Los clientes pueden registrarse en taylor-ai.com con su correo electrónico.",
+        "depositos": "Se aceptan depósitos en USD y criptomonedas estables. Los depósitos se acreditan en 24 horas, pero el dinero comienza a ser invertido cada lunes.",
+        "retiros": "Los retiros pueden solicitarse en cualquier momento y se procesan en 1-3 días hábiles.",
+        "inversion_responsable": "Taylor enfatiza la importancia de la inversión responsable y recomienda que los usuarios realicen su propia investigación antes de invertir."
+    }
+}
